@@ -3,11 +3,8 @@ FROM node:22-alpine
 WORKDIR /workspace
 
 RUN corepack enable
-
-COPY apps/sandbox/templates .
-
-RUN pnpm i
+RUN corepack prepare pnpm@latest --activate
 
 EXPOSE 5173
 
-CMD ["pnpm", "run", "dev"]
+CMD ["sh", "-c", "pnpm install && pnpm run dev -- --host 0.0.0.0"]

@@ -6,7 +6,10 @@ import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: true,
+    cors: {
+      origin: true,
+      credentials: true,
+    },
   });
   const configService = app.get(ConfigService);
 
@@ -24,4 +27,4 @@ async function bootstrap() {
   const port = configService.get<number>('port') ?? 4000;
   await app.listen(port);
 }
-bootstrap();
+void bootstrap();

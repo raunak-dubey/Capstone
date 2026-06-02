@@ -3,13 +3,13 @@ import Docker from 'dockerode';
 
 @Injectable()
 export class DockerService {
-  private docker: Docker;
-
+  private readonly docker: Docker;
   constructor() {
     this.docker = new Docker();
   }
 
-  async pingDocker() {
-    return this.docker.ping();
+  async pingDocker(): Promise<string> {
+    const response = (await this.docker.ping()) as Buffer;
+    return response.toString();
   }
 }
