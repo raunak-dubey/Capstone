@@ -1,8 +1,8 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
-import { ConfigService } from '@nestjs/config';
-import { ValidationPipe } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module.js";
+import { ConfigService } from "@nestjs/config";
+import { ValidationPipe } from "@nestjs/common";
+import cookieParser from "cookie-parser";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,7 +13,7 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix("api");
   app.use(cookieParser());
 
   app.useGlobalPipes(
@@ -24,7 +24,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = configService.get<number>('port') ?? 4000;
+  const port = configService.get<number>("port") ?? 4000;
   await app.listen(port);
 }
 void bootstrap();

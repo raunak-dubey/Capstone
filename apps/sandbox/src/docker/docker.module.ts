@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { DockerService } from './docker.service.js';
-import { ContainerService } from './container.service.js';
+import { Module } from "@nestjs/common";
+import { DockerService } from "./docker.service.js";
+import { ContainerService } from "./container.service.js";
 
 @Module({
   providers: [DockerService, ContainerService],

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import Docker, { type Container } from "dockerode";
 
 @Injectable()
@@ -44,6 +44,10 @@ export class ContainerService {
 
     // Extract dynamic port
     const port = inspectData.NetworkSettings.Ports["5173/tcp"]?.[0]?.HostPort;
+
+    if (!port) {
+      throw new NotFoundException("Failed to resolve container port");
+    }
 
     return {
       id: container.id,

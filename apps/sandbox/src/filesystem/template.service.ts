@@ -5,12 +5,19 @@ import { fileURLToPath } from "url";
 
 @Injectable()
 export class TemplateService {
-  async createWorkspaceFromTemplate(sandboxId: string): Promise<string> {
+  async createWorkspaceFromTemplate(
+    sandboxId: string,
+    template: string,
+  ): Promise<string> {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
 
-    const templatePath = path.join(__dirname, "../../templates", "react-vite");
-    const workspacePath = path.join(__dirname, "../../workspaces", sandboxId);
+    const templatePath = path.join(__dirname, "../../templates", template);
+    const workspacePath = path.join(
+      __dirname,
+      "../../../../../workspaces",
+      sandboxId,
+    );
 
     console.log({
       templatePath,

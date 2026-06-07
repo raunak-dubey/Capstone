@@ -1,17 +1,17 @@
-import 'dotenv/config';
-import { NotFoundException } from '@nestjs/common';
-import { envSchema } from '@repo/zod-config';
+import "dotenv/config";
+import { NotFoundException } from "@nestjs/common";
+import { envSchema } from "@repo/zod-config";
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 console.log(parsedEnv);
 if (!parsedEnv.success) {
   console.error(
-    'Invalid environment variables:',
+    "Invalid environment variables:",
     parsedEnv.error.flatten().fieldErrors,
   );
 
-  throw new NotFoundException('Invalid environment variables');
+  throw new NotFoundException("Invalid environment variables");
 }
 
 const env = parsedEnv.data;
