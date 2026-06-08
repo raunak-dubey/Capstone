@@ -2,13 +2,14 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { DockerService } from "../docker/docker.service.js";
 import { ContainerService } from "../docker/container.service.js";
 import { randomUUID } from "crypto";
-import { TemplateService } from "../filesystem/template.service.js";
 import type { SandboxRegistryService } from "./sandbox-registory.service.js";
 import type {
   DeleteSandboxResponse,
   SandboxResponse,
   StopSandboxResponse,
 } from "@repo/contracts";
+import type { WorkspaceService } from "../filesystem/workspace.service.js";
+import type { TemplateService } from "../filesystem/template.service.js";
 
 @Injectable()
 export class SandboxService {
@@ -16,6 +17,7 @@ export class SandboxService {
     private readonly dockerService: DockerService,
     private readonly containerService: ContainerService,
     private readonly templateService: TemplateService,
+    private readonly workspaceService: WorkspaceService,
     private readonly registryService: SandboxRegistryService,
   ) {}
 
@@ -27,26 +29,30 @@ export class SandboxService {
     const sandboxId = randomUUID();
 
     const workspacePath =
-      await this.templateService.createWorkspaceFromTemplate(
+      await this.workspaceService.createWorkspace(sandboxId);
+
+    try {
+      await this.templateService.copyTemplate(template, workspacePath);
+
+      const container = await this.containerService.createContainer(
         sandboxId,
-        template,
+        workspacePath,
       );
 
-    const container = await this.containerService.createContainer(
-      sandboxId,
-      workspacePath,
-    );
+      this.registryService.create({
+        sandboxId,
+        containerId: container.id,
+        workspacePath,
+        port: container.port,
+        url: `http://localhost:${container.port}`,
+        status: "running",
+      });
 
-    this.registryService.create({
-      sandboxId,
-      containerId: container.id,
-      workspacePath,
-      port: container.port,
-      url: `http://localhost:${container.port}`,
-      status: "running",
-    });
-
-    return container;
+      return container;
+    } catch (error) {
+      await this.workspaceService.deleteWorkspace(sandboxId);
+      throw error;
+    }
   }
 
   async stopSandbox(sandboxId: string): Promise<StopSandboxResponse> {
@@ -67,6 +73,7 @@ export class SandboxService {
     }
 
     await this.containerService.removeContainer(sandbox.containerId);
+    await this.workspaceService.deleteWorkspace(sandboxId);
     this.registryService.delete(sandboxId);
     return { success: true };
   }
