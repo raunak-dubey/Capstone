@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
-import { cp, mkdir } from "fs/promises";
+import { access, cp, mkdir } from "fs/promises";
+import { WorkspaceException } from "../common/exceptions/workspace.exception.js";
 import path from "path";
 
 @Injectable()
@@ -19,16 +20,22 @@ export class TemplateService {
     const templatePath = path.join(templatesRoot, template);
     const workspacePath = path.join(workspacesRoot, sandboxId);
 
-    // Ensure workspace exists
-    await mkdir(workspacePath, {
-      recursive: true,
-    });
+    try {
+      await access(templatePath);
 
-    // Copy template into workspace
-    await cp(templatePath, workspacePath, {
-      recursive: true,
-    });
+      await mkdir(workspacePath, {
+        recursive: true,
+      });
 
-    return workspacePath;
+      await cp(templatePath, workspacePath, {
+        recursive: true,
+      });
+
+      return workspacePath;
+    } catch (error) {
+      throw new WorkspaceException(
+        `Failed to create workspace from template: ${template} - ${(error as Error).message}`,
+      );
+    }
   }
 }

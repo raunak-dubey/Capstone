@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import Docker, { type Container } from "dockerode";
 import type { ContainerResponse } from "@repo/contracts";
+import { DockerException } from "../common/exceptions/docker.exception.js";
 
 @Injectable()
 export class ContainerService {
@@ -14,65 +15,83 @@ export class ContainerService {
     sandboxId: string,
     workspacePath: string,
   ): Promise<ContainerResponse> {
-    // Create container
-    const container: Container = await this.docker.createContainer({
-      Image: this.configService.getOrThrow<string>("sandbox.image"),
+    try {
+      // Create container
+      const container: Container = await this.docker.createContainer({
+        Image: this.configService.getOrThrow<string>("sandbox.image"),
 
-      name: `sandbox-${sandboxId}`,
+        name: `sandbox-${sandboxId}`,
 
-      Tty: true,
+        Tty: true,
 
-      WorkingDir: "/workspace",
+        WorkingDir: "/workspace",
 
-      ExposedPorts: {
-        "5173/tcp": {},
-      },
-
-      HostConfig: {
-        Binds: [`${workspacePath}:/workspace`],
-
-        PortBindings: {
-          "5173/tcp": [
-            {
-              HostPort: "",
-            },
-          ],
+        ExposedPorts: {
+          "5173/tcp": {},
         },
-      },
-    });
 
-    // Start container
-    await container.start();
+        HostConfig: {
+          Binds: [`${workspacePath}:/workspace`],
 
-    // Inspect container
-    const inspectData = await container.inspect();
+          PortBindings: {
+            "5173/tcp": [
+              {
+                HostPort: "",
+              },
+            ],
+          },
+        },
+      });
 
-    // Extract dynamic port
-    const port = inspectData.NetworkSettings.Ports["5173/tcp"]?.[0]?.HostPort;
+      // Start container
+      await container.start();
 
-    if (!port) {
-      throw new NotFoundException("Failed to resolve container port");
+      // Inspect container
+      const inspectData = await container.inspect();
+
+      // Extract dynamic port
+      const port = inspectData.NetworkSettings.Ports["5173/tcp"]?.[0]?.HostPort;
+
+      if (!port) {
+        throw new NotFoundException("Failed to resolve container port");
+      }
+
+      return {
+        id: container.id,
+        sandboxId,
+        port,
+        url: `http://localhost:${port}`,
+      };
+    } catch (error) {
+      throw new DockerException(
+        `Failed to create container for sandbox ${sandboxId} - ${(error as Error).message}`,
+      );
     }
-
-    return {
-      id: container.id,
-      sandboxId,
-      port,
-      url: `http://localhost:${port}`,
-    };
   }
 
   async stopContainer(containerId: string) {
-    const container = this.docker.getContainer(containerId);
+    try {
+      const container = this.docker.getContainer(containerId);
 
-    await container.stop();
+      await container.stop();
+    } catch (error) {
+      throw new DockerException(
+        `Failed to stop container ${containerId} - ${(error as Error).message}`,
+      );
+    }
   }
 
   async removeContainer(containerId: string) {
-    const container = this.docker.getContainer(containerId);
+    try {
+      const container = this.docker.getContainer(containerId);
 
-    await container.remove({
-      force: true,
-    });
+      await container.remove({
+        force: true,
+      });
+    } catch (error) {
+      throw new DockerException(
+        `Failed to remove container ${containerId} - ${(error as Error).message}`,
+      );
+    }
   }
 }
