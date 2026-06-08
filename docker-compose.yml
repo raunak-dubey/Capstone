@@ -5,18 +5,83 @@ services:
     image: mongo
     container_name: capstone-mongodb
 
-    restart: always
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
     ports:
       - "27017:27017"
 
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: Raunak@2
-      MONGO_INITDB_DATABASE: capstone
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
 
     volumes:
       - mongodb_data:/data/db
+
+    networks:
+      - capstone-network
+
+  sandbox:
+    build:
+      context: .
+      dockerfile: apps/sandbox/Dockerfile
+      container_name: capstone-sandbox
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./apps/sandbox/templates:/app/templates
+      - ./apps/sandbox/workspaces:/app/workspaces
+
+    networks:
+      - capstone-network
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      container_name: capstone-server
+
+    restart: unless-stopped
+
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      sandbox:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    ports:
+      - "4000:4000"
+
+    networks:
+      - capstone-network
+
+networks:
+  capstone-network:
+    name: capstone-network
+    driver: bridge
 
 volumes:
   mongodb_data:

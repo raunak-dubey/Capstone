@@ -3,6 +3,7 @@ import type { ConfigService } from "@nestjs/config";
 import Docker, { type Container } from "dockerode";
 import type { ContainerResponse } from "@repo/contracts";
 import { DockerException } from "../common/exceptions/docker.exception.js";
+import { waitForVite } from "./utils/wait-for-vite.js";
 
 @Injectable()
 export class ContainerService {
@@ -19,11 +20,15 @@ export class ContainerService {
       // Create container
       const container: Container = await this.docker.createContainer({
         Image: this.configService.getOrThrow<string>("sandbox.image"),
+        name: `capstone-sandbox-${sandboxId}`,
 
-        name: `sandbox-${sandboxId}`,
+        Labels: {
+          app: "capstone",
+          service: "sandbox",
+          "sandbox.id": sandboxId,
+        },
 
         Tty: true,
-
         WorkingDir: "/workspace",
 
         ExposedPorts: {
@@ -31,14 +36,19 @@ export class ContainerService {
         },
 
         HostConfig: {
-          Binds: [`${workspacePath}:/workspace`],
+          NetworkMode: "capstone-network",
+          AutoRemove: false,
 
+          RestartPolicy: {
+            Name: "unless-stopped",
+          },
+
+          Memory: 1024 * 1024 * 1024,
+          NanoCpus: 1_000_000_000,
+
+          Binds: [`${workspacePath}:/workspace`],
           PortBindings: {
-            "5173/tcp": [
-              {
-                HostPort: "",
-              },
-            ],
+            "5173/tcp": [{ HostPort: "" }],
           },
         },
       });
@@ -56,6 +66,7 @@ export class ContainerService {
         throw new NotFoundException("Failed to resolve container port");
       }
 
+      await waitForVite(port);
       return {
         id: container.id,
         sandboxId,
@@ -93,5 +104,44 @@ export class ContainerService {
         `Failed to remove container ${containerId} - ${(error as Error).message}`,
       );
     }
+  }
+
+  async restartContainer(containerId: string): Promise<void> {
+    try {
+      const container = this.docker.getContainer(containerId);
+
+      await container.restart();
+    } catch (error) {
+      throw new DockerException(
+        `Failed to restart container ${containerId} - ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
+
+  async inspectContainer(containerId: string) {
+    try {
+      const container = this.docker.getContainer(containerId);
+
+      return await container.inspect();
+    } catch (error) {
+      throw new DockerException(
+        `Failed to inspect container ${containerId} - ${
+          (error as Error).message
+        }`,
+      );
+    }
+  }
+
+  async getContainerStatus(containerId: string) {
+    const inspect = await this.inspectContainer(containerId);
+
+    return {
+      running: inspect.State.Running,
+      status: inspect.State.Status,
+      startedAt: inspect.State.StartedAt,
+      finishedAt: inspect.State.FinishedAt,
+    };
   }
 }
