@@ -3,14 +3,19 @@ import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
 import type { SandboxResponse } from "@repo/contracts";
 import type { AxiosResponse } from "axios";
+import type { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class SandboxClient {
-  constructor(private readonly http: HttpService) {}
+  constructor(
+    private readonly http: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async createSandbox(template: string): Promise<SandboxResponse> {
+    const sandboxUrl = this.configService.getOrThrow<string>("sandbox.url");
     const response = await firstValueFrom<AxiosResponse<SandboxResponse>>(
-      this.http.post<SandboxResponse>("http://localhost:3000/api/sandbox", {
+      this.http.post<SandboxResponse>(sandboxUrl, {
         template,
       }),
     );

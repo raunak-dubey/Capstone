@@ -1,28 +1,23 @@
 import { Injectable } from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import { cp, mkdir } from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 
 @Injectable()
 export class TemplateService {
+  constructor(private readonly configService: ConfigService) {}
+
   async createWorkspaceFromTemplate(
     sandboxId: string,
     template: string,
   ): Promise<string> {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
+    const templatesRoot =
+      this.configService.getOrThrow<string>("paths.templates");
+    const workspacesRoot =
+      this.configService.getOrThrow<string>("paths.workspaces");
 
-    const templatePath = path.join(__dirname, "../../templates", template);
-    const workspacePath = path.join(
-      __dirname,
-      "../../../../../workspaces",
-      sandboxId,
-    );
-
-    console.log({
-      templatePath,
-      workspacePath,
-    });
+    const templatePath = path.join(templatesRoot, template);
+    const workspacePath = path.join(workspacesRoot, sandboxId);
 
     // Ensure workspace exists
     await mkdir(workspacePath, {

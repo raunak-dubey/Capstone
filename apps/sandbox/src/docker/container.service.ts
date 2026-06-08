@@ -1,17 +1,22 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import Docker, { type Container } from "dockerode";
+import type { ContainerResponse } from "@repo/contracts";
 
 @Injectable()
 export class ContainerService {
   private readonly docker: Docker;
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.docker = new Docker();
   }
 
-  async createContainer(sandboxId: string, workspacePath: string) {
+  async createContainer(
+    sandboxId: string,
+    workspacePath: string,
+  ): Promise<ContainerResponse> {
     // Create container
     const container: Container = await this.docker.createContainer({
-      Image: "sandbox-image",
+      Image: this.configService.getOrThrow<string>("sandbox.image"),
 
       name: `sandbox-${sandboxId}`,
 

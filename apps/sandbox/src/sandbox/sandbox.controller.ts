@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post } from "@nestjs/common";
 import { SandboxService } from "./sandbox.service.js";
+import type { CreateSandboxDto } from "./dto/create-sandbox.service.js";
 
 @Controller("sandbox")
 export class SandboxController {
@@ -11,8 +12,8 @@ export class SandboxController {
   }
 
   @Post()
-  async createSandbox(@Body() body: { template: string }) {
-    return this.sandboxService.createSandbox(body.template);
+  async createSandbox(@Body() dto: CreateSandboxDto) {
+    return this.sandboxService.createSandbox(dto.template);
   }
 
   @Post(":id/stop")

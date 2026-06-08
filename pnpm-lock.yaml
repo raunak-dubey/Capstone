@@ -54,6 +54,9 @@ importers:
       dockerode:
         specifier: ^5.0.0
         version: 5.0.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

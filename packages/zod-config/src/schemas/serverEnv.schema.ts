@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const envSchema = z.object({
+export const serverEnvSchema = z.object({
   PORT: z.coerce.number().default(4000),
 
   MONGODB_URI: z.string().min(1),
@@ -10,4 +10,4 @@ export const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
 });
 
-export type EnvSchema = z.infer<typeof envSchema>;
+export type ServerEnvSchema = z.infer<typeof serverEnvSchema>;

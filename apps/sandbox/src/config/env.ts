@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { NotFoundException } from "@nestjs/common";
-import { serverEnvSchema } from "@repo/zod-config";
+import { sandboxEnvSchema } from "@repo/zod-config";
 
-const parsedEnv = serverEnvSchema.safeParse(process.env);
+const parsedEnv = sandboxEnvSchema.safeParse(process.env);
 
 console.log(parsedEnv);
 if (!parsedEnv.success) {
@@ -17,14 +17,15 @@ if (!parsedEnv.success) {
 const env = parsedEnv.data;
 
 export default () => ({
-  port: env.PORT,
+  port: Number(env.PORT ?? 3000),
 
-  mongodb: {
-    uri: env.MONGODB_URI,
+  sandbox: {
+    image: env.SANDBOX_IMAGE ?? "sandbox-image",
   },
 
-  jwt: {
-    secret: env.JWT_SECRET,
-    expiresIn: env.JWT_EXPIRES_IN,
+  paths: {
+    templates: env.TEMPLATES_PATH ?? "apps/sandbox/templates",
+
+    workspaces: env.WORKSPACES_PATH ?? "apps/sandbox/workspaces",
   },
 });
